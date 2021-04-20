@@ -50,9 +50,9 @@ class MakeAll
   
   void setColor(byte red, byte green, byte blue)
   {
-    color.red += red;
-    color.green += green;
-    color.blue += blue;
+    color.red = red;
+    color.green = green;
+    color.blue = blue;
     SerialOTA.println(String("Set everything in color ") + red + ", " + green + ", " + blue);
     Serial.println(String("Set everything in color ") + red + ", " + green + ", " + blue);
   }
