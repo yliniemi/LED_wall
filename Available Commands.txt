@@ -1,0 +1,15 @@
+mosquitto_pub -t 'LEDwall/command/makeAll/enabled' -m '1'
+mosquitto_pub -t 'LEDwall/command/makeAll/blue' -m '255'
+mosquitto_pub -t 'LEDwall/command/makeAll/green' -m '255'
+mosquitto_pub -t 'LEDwall/command/makeAll/red' -m '255'
+
+mosquitto_pub -t 'LEDwall/command/blinky/enabled' -m '1'
+mosquitto_pub -t 'LEDwall/command/blinky/red' -m '255'
+mosquitto_pub -t 'LEDwall/command/blinky/gree' -m '255'
+mosquitto_pub -t 'LEDwall/command/blinky/blue' -m '255'
+mosquitto_pub -t 'LEDwall/command/blinky/dots' -m '5'
+
+mosquitto_pub -t 'LEDwall/command/brightness' -m '255'
+
+mosquitto_pub -t 'LEDwall/command/fadeToBlack/multiplier' -m '70'
+mosquitto_pub -t 'LEDwall/command/fadeToBlack/enabled' -m '70'
