@@ -1,6 +1,6 @@
-#define HOSTNAME "LEDwall"      // replace this with the name for this particular device. everyone deserves a unique name
+#define HOSTNAME "LEDwall"        // replace this with the name for this particular device. everyone deserves a unique name
 #define OTA_ROUNDS 21             // this is how many seconds we waste waiting for the OTA during boot. sometimes people make mistakes in their code - not me - and the program freezes. this way you can still update your code over the air even if you have some dodgy code in your loop
-#include <myCredentials.h>        // oh yeah. these is myCredentials.zip on the root of this repository. include it as a library and the edit the file with your onw ips and stuff
+#include <myCredentials.h>        // oh yeah. there is myCredentials.zip on the root of this repository. include it as a library and then edit the file with your onw ips and stuff
 
 // #include <WiFi.h>
 // #include <ESPmDNS.h>
@@ -16,19 +16,37 @@ FASTLED_USING_NAMESPACE
 #define LED_WIDTH 8
 #define LED_HEIGHT 300
 #define NUM_LEDS LED_WIDTH*LED_HEIGHT
-#define UNIVERSE_SIZE 170 //my setup is 170 leds per universe no matter if the last universe is not full.
 CRGB leds[NUM_LEDS];
+int maxCurrent = 50000;         // in milliwatts. can be changed later on with mqtt commands. be careful with this one. it might be best to disable this funvtionality altogether
+#define TRY_DISCONNECTING 15     // this is how many times we try WiFi.reconnect() before trying WiFi.disconnect()
+#define TIME_TO_REBOOT 30        // this one has to be bigger that TRY_DISCONNECTING. this is how many times we try to get WiFi back before giving up and rebooting
 
+unsigned long expectedTime = LED_HEIGHT * 24 * 2 / 800;  // this gives us double of what it should take to update one led strip. double bbecause sensing the rest pulse takes a little time
+
+/* // This one let it control MQTT and WiFi
 EspMQTTClient MQTTclient(
   //WIFI_SSID,
   //WIFI_PSK,
   MQTT_SERVER,      // MQTT Broker server ip
-  1883,             // default unencrypted port is 1883
   MQTT_USERNAME,    // Can be omitted if not needed
   MQTT_PASSWORD,    // And this one too 
-  HOSTNAME          // Client name that uniquely identify your device
+  HOSTNAME,         // Client name that uniquely identify your device
+  1883              // default unencrypted port is 1883
+);
+*/
+
+// This one is for letting it only handle MQTT and not WiFi
+EspMQTTClient MQTTclient(
+  MQTT_SERVER,        // MQTT Broker server ip
+  1883,               // default unencrypted port is 1883
+  // MQTT_USERNAME,   // Can be omitted if not needed
+  // MQTT_PASSWORD,   // And this one too 
+  HOSTNAME            // Client name that uniquely identify your device
 );
 
+// we need this function so the led values don't overflow. if we try to make a color on an led more than 255, it will overflow and the value will be small
+// with this function we can limit out values to be 0 if they are negative and to 255 if they are higher than 255
+// i made the function more broad so it could be used for other things
 int limitInt(int value, int low, int high)
 {
   if (value < low) return low;
@@ -41,7 +59,11 @@ class MakeAll
   public:
   bool enabled = true;
   CRGB color;
-
+  
+  int interval = 100;
+  int type = 0;   // 0 = static, 1 = strobe, 2 = random time
+  int frameCounter = 0;
+  
   MakeAll(byte red, byte green, byte blue, bool ON)
   {
     setColor(red, green, blue);
@@ -64,7 +86,20 @@ class MakeAll
   
   void doYourThing()
   {
-    if (enabled) fill_solid(leds, NUM_LEDS, color);
+    if (enabled)
+    {
+      if (type == 0) fill_solid(leds, NUM_LEDS, color);
+      else if (type == 1)
+      {
+        if (frameCounter > interval)
+        {
+          fill_solid(leds, NUM_LEDS, color);
+          frameCounter = 0;
+        }
+        else frameCounter++;
+      }
+      else if ((type == 2) && random(interval) == 0) fill_solid(leds, NUM_LEDS, color);
+    }
   }
   
   void parse(String topic, String payload)
@@ -93,6 +128,18 @@ class MakeAll
       SerialOTA.println(String("Changed to ") + enabled);
       Serial.println(String("Changed to ") + enabled);
     }
+    else if (topic.equals("type"))
+    {
+      type = payload.toInt();
+      SerialOTA.println(String("Changed to ") + type);
+      Serial.println(String("Changed to ") + type);
+    }
+    else if (topic.equals("interval"))
+    {
+      interval = payload.toInt();
+      SerialOTA.println(String("Changed to ") + interval);
+      Serial.println(String("Changed to ") + interval);
+    }
   }
 };
 
@@ -103,47 +150,76 @@ class Blinky: public MakeAll
 
   explicit Blinky(int red, int green, int blue, bool amIenabled, int howManyDots) : MakeAll(red, green, blue, amIenabled)
   {
-    // MakeAll(red, green, blue, true);
+    // MakeAll::MakeAll(red, green, blue, true);
     numberOfDots = howManyDots;
   }
   
   void parse(String topic, String payload)
   {
-    MakeAll::parse(topic, payload);
     if (topic.equals("dots"))
     {
       numberOfDots = payload.toInt();
       SerialOTA.println(String("The number of blinky dots is now ") + numberOfDots);
       Serial.println(String("The number of blinky dots is now ") + numberOfDots);
     }
+    else MakeAll::parse(topic, payload);
   }
   
   void doYourThing()
   {
     if (enabled)
     {
-      SerialOTA.println("blinky is alive!");
+      // SerialOTA.println("blinky is alive!");
       for (int i; i < numberOfDots; i++)
       {
         int ledNumber = random(NUM_LEDS);
-        leds[ledNumber].red += random(color.red);
+        leds[ledNumber].red = limitInt(random(color.red) + leds[ledNumber].red, 0, 255);
         // SerialOTA.print(i);    // WTF. if I don't do this here, this isn't run. maybe a problem with the OTA partition?
         // SerialOTA.println(random(color.red));
-        leds[ledNumber].green += random(color.green);
+        leds[ledNumber].green = limitInt(random(color.green) + leds[ledNumber].green, 0, 255);
         // SerialOTA.println(random(color.red));
-        leds[ledNumber].blue += random(color.blue);
+        leds[ledNumber].blue = limitInt(random(color.blue) + leds[ledNumber].blue, 0, 255);
         // SerialOTA.println(random(color.blue));
       }
-      SerialOTA.println();
-      SerialOTA.println("What the frell!");
+      // SerialOTA.println();
+      // SerialOTA.println("What the frell!");
     }
   }
-  
 };
 
-MakeAll makeAll(1, 1, 1, false);
+class Blur
+{
+  public:
+  int blurAmount = 128;
+  bool enabled = true;
 
-Blinky blinky(255, 255, 255, true, 10);
+  Blur(int amount, bool amIon)
+  {
+    blurAmount = amount;
+    enabled = amIon;
+  }
+
+  void doYourThing()
+  {
+    if (enabled) blur1d(leds, NUM_LEDS, blurAmount);  
+  }
+  
+  void parse(String topic, String payload)
+  {
+    if (topic.equals("amount"))
+    {
+      blurAmount = payload.toInt();
+      SerialOTA.println(String("Changed blur amount to ") + blurAmount);
+      Serial.println(String("Changed blur amount to ") + blurAmount);
+    }
+    if (topic.equals("enabled"))
+    {
+      enabled = payload.toInt();
+      SerialOTA.println(String("Changed blur to " + String((int)enabled)));
+      Serial.println(String("Changed blur to " + String((int)enabled)));
+    }
+  }
+};
 
 class Dot
 {
@@ -170,9 +246,9 @@ class Dot
   void draw()
   {
     updateLocation();
-    leds[(int) location].red += color.red;
-    leds[(int) location].green += color.green;
-    leds[(int) location].blue += color.blue;
+    leds[(int) location].red = limitInt(color.red + leds[(int) location].red, 0, 255);
+    leds[(int) location].green = limitInt(color.green + leds[(int) location].green, 0, 255);
+    leds[(int) location].blue = limitInt(color.blue + leds[(int) location].blue, 0, 255);
   }
   
   void updateLocation()
@@ -204,8 +280,6 @@ class MovingDots
     }
   }
 };
-
-MovingDots movingDots;
 
 class FadeToBlack
 {
@@ -243,14 +317,14 @@ class FadeToBlack
 
   void parse(String topic, String payload)
   {
-    if (topic.equals(String(HOSTNAME) + "/make/fadeToBlack/multiplier"))
+    if (topic.equals("multiplier"))
     {
       multiplier = payload.toInt();
       keepSane();
       SerialOTA.println(String("Changed fade multiplier to ") + multiplier);
       Serial.println(String("Changed fade multiplier to ") + multiplier);
     }
-    if (topic.equals(String(HOSTNAME) + "/make/fadeToBlack/enabled"))
+    if (topic.equals("enabled"))
     {
       enabled = payload.toInt();
       SerialOTA.println(String("Changed fade to " + String((int)enabled)));
@@ -259,46 +333,69 @@ class FadeToBlack
   }
 };
 
-FadeToBlack fadeToBlack(1, true);
+MovingDots movingDots;
+
+Blur blur(128, true);
+
+MakeAll makeAll(1, 1, 1, false);
+
+Blinky blinky(255, 255, 255, true, 10);
+
+FadeToBlack fadeToBlack(20, true);
 
 void MQTTsubscriptions()
 {
-  MQTTclient.subscribe(String(HOSTNAME) + "/make/makeAll/+", [](String topic, String payload)
+  MQTTclient.subscribe(String(HOSTNAME) + "/command/makeAll/+", [](String topic, String payload)
   {
-    SerialOTA.println("From topic: " + topic + ", payload: " + payload);
-    Serial.println("From topic: " + topic + ", payload: " + payload);
-    makeAll.parse(topic.substring((String(HOSTNAME) + "/make/makeAll/").length()), payload);
+    SerialOTA.println(String("From topic: ") + topic + ", payload: " + payload);
+    Serial.println(String("From topic: ") + topic + ", payload: " + payload);
+    makeAll.parse(topic.substring((String(HOSTNAME) + "/command/makeAll/").length()), payload);
     // i did this witchcraft to strip the topic of all useless stuff to help the poor parser
   });
   
-  MQTTclient.subscribe(String(HOSTNAME) + "/make/blinky/+", [](String topic, String payload)
+  MQTTclient.subscribe(String(HOSTNAME) + "/command/blinky/+", [](String topic, String payload)
   {
-    SerialOTA.println("From topic: " + topic + ", payload: " + payload);
-    Serial.println("From topic: " + topic + ", payload: " + payload);
-    blinky.parse(topic.substring((String(HOSTNAME) + "/make/blinky/").length()), payload);
+    SerialOTA.println(String("From topic: ") + topic + ", payload: " + payload);
+    Serial.println(String("From topic: ") + topic + ", payload: " + payload);
+    blinky.parse(topic.substring((String(HOSTNAME) + "/command/blinky/").length()), payload);
     // i did this witchcraft to strip the topic of all useless stuff to help the poor parser
   });
   
-  /*MQTTclient.subscribe(String(HOSTNAME) + "/make/dots/+", [](String topic, String payload)
+  MQTTclient.subscribe(String(HOSTNAME) + "/command/current", [](String topic, String payload)
+  {
+    SerialOTA.println(String("From topic: ") + topic + ", payload: " + payload);
+    Serial.println(String("From topic: ") + topic + ", payload: " + payload);
+    maxCurrent = payload.toInt();    // no safety in place. don't give this insane values so you don't burn your house down. this is here purely for debugging reasons
+    set_max_power_in_volts_and_milliamps(5, maxCurrent);
+  });
+  
+  /*MQTTclient.subscribe(String(HOSTNAME) + "/command/dots/+", [](String topic, String payload)
   {
     SerialOTA.println("From topic: " + topic + ", payload: " + payload);
     Serial.println("From topic: " + topic + ", payload: " + payload);
     dots.parse(topic, payload);
   });*/
   
-  // MQTTclient.subscribe(String(HOSTNAME) + "/make/rain/+", makeRainParse);
+  // MQTTclient.subscribe(String(HOSTNAME) + "/command/rain/+", makeRainParse);
   
-  MQTTclient.subscribe(String(HOSTNAME) + "/make/fadeToBlack/+", [](String topic, String payload)
+  MQTTclient.subscribe(String(HOSTNAME) + "/command/fadeToBlack/+", [](String topic, String payload)
   {
-    SerialOTA.println("From topic: " + topic + ", payload: " + payload);
-    Serial.println("From topic: " + topic + ", payload: " + payload);
-    fadeToBlack.parse(topic, payload);
+    SerialOTA.println(String("From topic: ") + topic + ", payload: " + payload);
+    Serial.println(String("From topic: ") + topic + ", payload: " + payload);
+    fadeToBlack.parse(topic.substring((String(HOSTNAME) + "/command/fadeToBlack/").length()), payload);
   });
   
-  MQTTclient.subscribe(String(HOSTNAME) + "/make/brightness", [](String topic, String payload)
+  MQTTclient.subscribe(String(HOSTNAME) + "/command/blur/+", [](String topic, String payload)
   {
-    SerialOTA.println("From topic: " + topic + ", payload: " + payload);
-    Serial.println("From topic: " + topic + ", payload: " + payload);
+    SerialOTA.println(String("From topic: ") + topic + ", payload: " + payload);
+    Serial.println(String("From topic: ") + topic + ", payload: " + payload);
+    blur.parse(topic.substring((String(HOSTNAME) + "/command/blur/").length()), payload);
+  });
+  
+  MQTTclient.subscribe(String(HOSTNAME) + "/command/brightness", [](String topic, String payload)
+  {
+    SerialOTA.println(String("From topic: ") + topic + ", payload: " + payload);
+    Serial.println(String("From topic: ") + topic + ", payload: " + payload);
     FastLED.setBrightness(limitInt(payload.toInt(), 0, 255));
   });
   
@@ -320,6 +417,9 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Booting");
   
+  // comment the next line when you get the chance
+  // Serial.println("Doodling around for 10 seconds for debugging reasons");
+  // delay(10000);
   setupWifi(WIFI_SSID, WIFI_PSK);
   
   Serial.println("Ready");
@@ -350,26 +450,103 @@ void setup() {
   FastLED.addLeds<NEOPIXEL, 33>(leds, 7*LED_HEIGHT, LED_HEIGHT);
   
   randomSeed(esp_random());
-  set_max_power_in_volts_and_milliamps(5, 50000);   // in my current setup the maximum current is 50A
+  set_max_power_in_volts_and_milliamps(5, maxCurrent);   // in my current setup the maximum current is 50A
+  if (expectedTime < 10) expectedTime = 10;
 }
 
 void loop()
 {
-  static unsigned long oldMillis = 0;
-  unsigned long newMillis = millis();
-  SerialOTA.println(String("The loop took ") + (newMillis - oldMillis) + " milliseconds");
-  oldMillis = newMillis;
   randomSeed(esp_random());
   
-  ArduinoOTA.handle();  
   SerialOTAhandle();
-  MQTTclient.loop();
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    ArduinoOTA.handle();    // This is so that the MQTT or OTA doesn't go crazy and try to reconnect to a server when there is no WiFi
+    MQTTclient.loop();
+  }
 
   fadeToBlack.doYourThing();
+
+  // The last ones are additive so it doesn't matter what order you put them
   makeAll.doYourThing();
   blinky.doYourThing();
   movingDots.doYourThing();
+  blur.doYourThing();
   
-  delay(10);
+  static unsigned long oldMillis = 0;
+  unsigned long newMillis = millis();
+  unsigned long frameTime = newMillis - oldMillis;
+  static unsigned long previousTime = 0;
+  if ((millis() - previousTime > 10000) || (millis() < previousTime))
+  {
+    static String reconnectedAt = "";
+    static bool beenDisconnected = false;
+    Serial.println();
+    SerialOTA.println();
+    Serial.println(reconnectedAt);
+    SerialOTA.println(reconnectedAt);
+    Serial.println(String("The loop took ") + frameTime + " milliseconds");
+    SerialOTA.println(String("The loop took ") + frameTime + " milliseconds");
+    
+    Serial.print("WiFi connections status: ");
+    Serial.println(WiFi.status());
+    SerialOTA.print("WiFi connections status: ");
+    SerialOTA.println(WiFi.status());
+    previousTime = millis();
+    Serial.print(String("I have been on for ") + previousTime / (1000 * 60 * 60) + " hours, ");
+    Serial.print(String((previousTime / (1000 * 60)) % 60) + " minutes and ");
+    Serial.println(String((previousTime / 1000) % 60) + " seconds");
+    SerialOTA.print(String("I have been on for ") + previousTime / (1000 * 60 * 60) + " hours, ");
+    SerialOTA.print(String((previousTime / (1000 * 60)) % 60) + " minutes and ");
+    SerialOTA.println(String((previousTime / 1000) % 60) + " seconds");
+    static int tryNumber = 0;
+    if (WiFi.status() != WL_CONNECTED)
+    {
+      reconnectedAt += WiFi.status();   // im doing this to differentiate regular temporary WiFi outage and a long one
+      if (tryNumber > TRY_DISCONNECTING)
+      {
+        if (tryNumber > TIME_TO_REBOOT)
+        {
+          Serial.println("Couldn't reconnect to WiFi no matter what. Giving up and rebooting");
+          delay(1000);
+          ESP.restart();
+        }
+        else
+        {
+          Serial.println("WiFi has been down for too long. Trying to force disconnect.");
+          WiFi.disconnect();
+          delay(1000);
+          WiFi.mode(WIFI_STA);
+          WiFi.begin(WIFI_SSID, WIFI_PSK);
+          delay(1000);
+        }
+      }
+      else
+      {
+        Serial.println("God damn it! WiFi is lost. Trying to reconnect.");
+        
+        WiFi.reconnect();
+        // WiFi.reconnect() resulted in a crash half the time
+        // using events or WiFi.setAutoReconnect(true) didn't help. everything just kept crashing anyways
+        // i finally cracked the problem
+        // the solution is to have core 1 do nothing for some time. there is delay(1000) right now but i will reduce it when i do more testing
+        // the problem was FastLED.show() starting right after WiFi.reconnect(). core 1 didn't like that
+        // even though WiFi is run on core 0, core 1 does something really important right after connection is established
+        delay(1000);   // maybe this will make reconnecting more reliable. who knows???   IT DID!!!!!   False alarm. It didn't
+        
+        beenDisconnected = true;        
+      }
+      tryNumber++;
+    }
+    else if (beenDisconnected)
+    {
+      reconnectedAt += String(" WiFi reconnected at: ") + previousTime / (1000 * 60 * 60) + ":" + previousTime / (1000 * 60) % 60 + ":" + previousTime / 1000 % 60;      
+      reconnectedAt += String(" after ") + tryNumber + " tries\r\n";
+      beenDisconnected = false;
+      tryNumber = 0;
+    }
+  }
+  if (frameTime < expectedTime) delay(expectedTime - frameTime);
+  oldMillis = millis();
   FastLED.show();
 }
