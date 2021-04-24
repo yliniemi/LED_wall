@@ -246,9 +246,19 @@ class Dot
   void draw()
   {
     updateLocation();
-    leds[(int) location].red = limitInt(color.red + leds[(int) location].red, 0, 255);
-    leds[(int) location].green = limitInt(color.green + leds[(int) location].green, 0, 255);
-    leds[(int) location].blue = limitInt(color.blue + leds[(int) location].blue, 0, 255);
+    
+    float multiplier = location - (int)location;
+    int locationInt = (int) location;
+    leds[(int) location].red = limitInt(color.red + multiplier * leds[locationInt].red, 0, 255);
+    leds[(int) location].green = limitInt(color.green + multiplier * leds[locationInt].green, 0, 255);
+    leds[(int) location].blue = limitInt(color.blue + multiplier * leds[locationInt].blue, 0, 255);
+    
+    locationInt++;
+    if (locationInt >= NUM_LEDS) locationInt -= NUM_LEDS;
+    multiplier = 1 - multiplier;
+    leds[(int) location].red = limitInt(color.red + multiplier * leds[locationInt].red, 0, 255);
+    leds[(int) location].green = limitInt(color.green + multiplier * leds[locationInt].green, 0, 255);
+    leds[(int) location].blue = limitInt(color.blue + multiplier * leds[locationInt].blue, 0, 255);
   }
   
   void updateLocation()
@@ -335,7 +345,7 @@ class FadeToBlack
 
 MovingDots movingDots;
 
-Blur blur(128, true);
+Blur blur(128, false);
 
 MakeAll makeAll(1, 1, 1, false);
 
