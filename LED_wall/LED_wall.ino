@@ -247,8 +247,8 @@ class Dot
   {
     updateLocation();
     
-    float multiplier = location - (int)location;
-    int locationInt = (int) location;
+    int locationInt = location;
+    float multiplier = location - locationInt;
     leds[(int) location].red = limitInt(color.red + multiplier * leds[locationInt].red, 0, 255);
     leds[(int) location].green = limitInt(color.green + multiplier * leds[locationInt].green, 0, 255);
     leds[(int) location].blue = limitInt(color.blue + multiplier * leds[locationInt].blue, 0, 255);
