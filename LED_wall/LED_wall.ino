@@ -248,17 +248,18 @@ class Dot
     updateLocation();
     
     int locationInt = location;
-    float multiplier = location - locationInt;
-    leds[(int) location].red = limitInt(color.red + multiplier * leds[locationInt].red, 0, 255);
-    leds[(int) location].green = limitInt(color.green + multiplier * leds[locationInt].green, 0, 255);
-    leds[(int) location].blue = limitInt(color.blue + multiplier * leds[locationInt].blue, 0, 255);
+    // this is to do bilinear filering for the dots to make them just the tiniest bit more fluid
+    float multiplier = 1 - (location - locationInt);
+    leds[locationInt].red = limitInt(multiplier * color.red + leds[locationInt].red, 0, 255);
+    leds[locationInt].green = limitInt(multiplier * color.green + leds[locationInt].green, 0, 255);
+    leds[locationInt].blue = limitInt(multiplier * color.blue + leds[locationInt].blue, 0, 255);
     
     locationInt++;
     if (locationInt >= NUM_LEDS) locationInt -= NUM_LEDS;
     multiplier = 1 - multiplier;
-    leds[(int) location].red = limitInt(color.red + multiplier * leds[locationInt].red, 0, 255);
-    leds[(int) location].green = limitInt(color.green + multiplier * leds[locationInt].green, 0, 255);
-    leds[(int) location].blue = limitInt(color.blue + multiplier * leds[locationInt].blue, 0, 255);
+    leds[locationInt].red = limitInt(multiplier * color.red + leds[locationInt].red, 0, 255);
+    leds[locationInt].green = limitInt(multiplier * color.green + leds[locationInt].green, 0, 255);
+    leds[locationInt].blue = limitInt(multiplier * color.blue + leds[locationInt].blue, 0, 255);
   }
   
   void updateLocation()
