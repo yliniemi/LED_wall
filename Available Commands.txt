@@ -3,6 +3,8 @@ mosquitto_pub -t 'LEDwall/command/makeAll/blue' -m '255'
 mosquitto_pub -t 'LEDwall/command/makeAll/green' -m '255'
 mosquitto_pub -t 'LEDwall/command/makeAll/red' -m '255'
 mosquitto_pub -t 'LEDwall/command/makeAll/interval' -m '55'
+mosquitto_pub -t 'LEDwall/command/makeAll/type' -m '2'        // 0 = static, 1 = constant interval, 2 = random interval
+
 
 mosquitto_pub -t 'LEDwall/command/blinky/enabled' -m '1'
 mosquitto_pub -t 'LEDwall/command/blinky/red' -m '255'
