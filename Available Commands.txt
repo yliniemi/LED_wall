@@ -19,4 +19,4 @@ mosquitto_pub -t 'LEDwall/command/fadeToBlack/enabled' -m '70'
 
 mosquitto_pub -t 'LEDwall/command/blur/amount' -m '255'
 mosquitto_pub -t 'LEDwall/command/blur/enabled' -m '1'
-mosquitto_pub -t 'LEDwall/command/makeAll/type' -m '2'
+
