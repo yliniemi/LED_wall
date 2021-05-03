@@ -3,7 +3,11 @@
 
 #include "setupWifi.h"
 #include "OTA.h"
+
+#ifdef USING_SERIALOTA
 #include "SerialOTA.h"
+#endif
+
 #include "FastLED.h"
 #include <EspMQTTClient.h>
 FASTLED_USING_NAMESPACE
