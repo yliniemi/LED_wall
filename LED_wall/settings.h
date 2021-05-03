@@ -4,10 +4,10 @@
 #define MAX_CURRENT 50000
 
 #define PIN_0 4
-#define PIN_0 5
-#define PIN_0 27
-#define PIN_0 18
-#define PIN_0 19
-#define PIN_0 23
-#define PIN_0 32
-#define PIN_0 33
+#define PIN_1 5
+#define PIN_2 27
+#define PIN_3 18
+#define PIN_4 19
+#define PIN_5 23
+#define PIN_6 32
+#define PIN_7 33
