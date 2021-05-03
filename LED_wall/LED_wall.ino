@@ -1,6 +1,4 @@
-
-#define HOSTNAME "LEDwall"        // replace this with the name for this particular device. everyone deserves a unique name
-#define OTA_ROUNDS 21             // this is how many seconds we waste waiting for the OTA during boot. sometimes people make mistakes in their code - not me - and the program freezes. this way you can still update your code over the air even if you have some dodgy code in your loop
+#include "settings.h"
 #include <myCredentials.h>        // oh yeah. there is myCredentials.zip on the root of this repository. include it as a library and then edit the file with your onw ips and stuff
 
 #include "setupWifi.h"
@@ -429,24 +427,24 @@ void setup() {
   // comment the next line when you get the chance
   // Serial.println("Doodling around for 10 seconds for debugging reasons");
   // delay(10000);
-  setupWifi(WIFI_SSID, WIFI_PSK);
+  setupWifi();
   
   Serial.println("Ready");
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
   
-  setupOTA(HOSTNAME, OTApassword, OTA_ROUNDS);
+  setupOTA();
 
-  setupSerialOTA(HOSTNAME);
+  setupSerialOTA();
 
   // setupMQTT(HOSTNAME, MQTT_SERVER);
   MQTTclient.enableDebuggingMessages(); // Enable debugging messages sent to serial output
   String lastWillTopic = String(HOSTNAME) + "/lastwill";
-  char lastWillTopicChar[lastWillTopic.length() + 1];
+  static char lastWillTopicChar[65];
   lastWillTopic.toCharArray(lastWillTopicChar, lastWillTopic.length() + 1);
   SerialOTA.println(lastWillTopicChar);
   Serial.println(lastWillTopicChar);
-  // MQTTclient.enableLastWillMessage(lastWillTopicChar, "What a world, what a world!");  // For some reason this line prevents MQTT connection altogether
+  MQTTclient.enableLastWillMessage(lastWillTopicChar, "What a world, what a world!");  // For some reason this line prevents MQTT connection altogether
   // MQTTsubscriptions();     // we call this elsewhere
   
   FastLED.addLeds<NEOPIXEL, 4>(leds, 0*LED_HEIGHT, LED_HEIGHT);
@@ -467,12 +465,11 @@ void loop()
 {
   randomSeed(esp_random());
   
+  reconnectToWifiIfNecessary();
   SerialOTAhandle();
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    ArduinoOTA.handle();    // This is so that the MQTT or OTA doesn't go crazy and try to reconnect to a server when there is no WiFi
-    MQTTclient.loop();
-  }
+  ArduinoOTA.handle();    // This is so that the MQTT or OTA doesn't go crazy and try to reconnect to a server when there is no WiFi
+  MQTTclient.loop();
+  
 
   fadeToBlack.doYourThing();
 
@@ -486,75 +483,7 @@ void loop()
   unsigned long newMillis = millis();
   unsigned long frameTime = newMillis - oldMillis;
   static unsigned long previousTime = 0;
-  if ((millis() - previousTime > 10000) || (millis() < previousTime))
-  {
-    static String reconnectedAt = "";
-    static bool beenDisconnected = false;
-    Serial.println();
-    SerialOTA.println();
-    Serial.println(reconnectedAt);
-    SerialOTA.println(reconnectedAt);
-    Serial.println(String("The loop took ") + frameTime + " milliseconds");
-    SerialOTA.println(String("The loop took ") + frameTime + " milliseconds");
-    
-    Serial.print("WiFi connections status: ");
-    Serial.println(WiFi.status());
-    SerialOTA.print("WiFi connections status: ");
-    SerialOTA.println(WiFi.status());
-    previousTime = millis();
-    Serial.print(String("I have been on for ") + previousTime / (1000 * 60 * 60) + " hours, ");
-    Serial.print(String((previousTime / (1000 * 60)) % 60) + " minutes and ");
-    Serial.println(String((previousTime / 1000) % 60) + " seconds");
-    SerialOTA.print(String("I have been on for ") + previousTime / (1000 * 60 * 60) + " hours, ");
-    SerialOTA.print(String((previousTime / (1000 * 60)) % 60) + " minutes and ");
-    SerialOTA.println(String((previousTime / 1000) % 60) + " seconds");
-    static int tryNumber = 0;
-    if (WiFi.status() != WL_CONNECTED)
-    {
-      reconnectedAt += WiFi.status();   // im doing this to differentiate regular temporary WiFi outage and a long one
-      if (tryNumber > TRY_DISCONNECTING)
-      {
-        if (tryNumber > TIME_TO_REBOOT)
-        {
-          Serial.println("Couldn't reconnect to WiFi no matter what. Giving up and rebooting");
-          delay(1000);
-          ESP.restart();
-        }
-        else
-        {
-          Serial.println("WiFi has been down for too long. Trying to force disconnect.");
-          WiFi.disconnect();
-          delay(1000);
-          WiFi.mode(WIFI_STA);
-          WiFi.begin(WIFI_SSID, WIFI_PSK);
-          delay(1000);
-        }
-      }
-      else
-      {
-        Serial.println("God damn it! WiFi is lost. Trying to reconnect.");
-        
-        WiFi.reconnect();
-        // WiFi.reconnect() resulted in a crash half the time
-        // using events or WiFi.setAutoReconnect(true) didn't help. everything just kept crashing anyways
-        // i finally cracked the problem
-        // the solution is to have core 1 do nothing for some time. there is delay(1000) right now but i will reduce it when i do more testing
-        // the problem was FastLED.show() starting right after WiFi.reconnect(). core 1 didn't like that
-        // even though WiFi is run on core 0, core 1 does something really important right after connection is established
-        delay(1000);   // maybe this will make reconnecting more reliable. who knows???   IT DID!!!!!   False alarm. It didn't
-        
-        beenDisconnected = true;        
-      }
-      tryNumber++;
-    }
-    else if (beenDisconnected)
-    {
-      reconnectedAt += String(" WiFi reconnected at: ") + previousTime / (1000 * 60 * 60) + ":" + previousTime / (1000 * 60) % 60 + ":" + previousTime / 1000 % 60;      
-      reconnectedAt += String(" after ") + tryNumber + " tries\r\n";
-      beenDisconnected = false;
-      tryNumber = 0;
-    }
-  }
+  
   if (frameTime < expectedTime) delay(expectedTime - frameTime);
   oldMillis = millis();
   FastLED.show();

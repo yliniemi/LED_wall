@@ -1,7 +1,5 @@
 #include "SerialOTA.h"
 
-String OTAhostname = "SerialOTA";
-
 WiFiServer telnetServer(23);
 WiFiClient SerialOTA;
 
@@ -16,7 +14,7 @@ void SerialOTAhandle()
     {
       haveClient = true;
       SerialOTA.print("Welcome to ");
-      SerialOTA.println(OTAhostname);
+      SerialOTA.println(HOSTNAME);
     }
   }
   else if (!SerialOTA.connected())
@@ -28,9 +26,8 @@ void SerialOTAhandle()
   }
 }
 
-void setupSerialOTA(String hostname)
+void setupSerialOTA()
 {
-  OTAhostname = hostname;
   telnetServer.begin();
   telnetServer.setNoDelay(true);
 }
