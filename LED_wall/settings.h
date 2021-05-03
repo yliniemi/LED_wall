@@ -1,4 +1,5 @@
 #ifndef SETTINGS_H
+#define SETTINGS_H
 
 #define HOSTNAME "LEDwall"        // replace this with the name for this particular device. everyone deserves a unique name
 #define LED_WIDTH 8
