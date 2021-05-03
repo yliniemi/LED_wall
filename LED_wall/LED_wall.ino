@@ -3,14 +3,11 @@
 #define OTA_ROUNDS 21             // this is how many seconds we waste waiting for the OTA during boot. sometimes people make mistakes in their code - not me - and the program freezes. this way you can still update your code over the air even if you have some dodgy code in your loop
 #include <myCredentials.h>        // oh yeah. there is myCredentials.zip on the root of this repository. include it as a library and then edit the file with your onw ips and stuff
 
-// #include <WiFi.h>
-// #include <ESPmDNS.h>
-// #include <WiFiUdp.h>
-#include <EspMQTTClient.h>
 #include "setupWifi.h"
 #include "OTA.h"
 #include "SerialOTA.h"
 #include "FastLED.h"
+#include <EspMQTTClient.h>
 FASTLED_USING_NAMESPACE
 
 //The following has to be adapted to your specifications
