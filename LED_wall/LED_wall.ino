@@ -442,15 +442,30 @@ void setup() {
   Serial.println(lastWillTopicChar);
   MQTTclient.enableLastWillMessage(lastWillTopicChar, "What a world, what a world!");  // For some reason this line prevents MQTT connection altogether
   // MQTTsubscriptions();     // we call this elsewhere
-  
+
   FastLED.addLeds<NEOPIXEL, PIN_0>(leds, 0*LED_HEIGHT, LED_HEIGHT);
+  
+  #if LED_WIDTH > 1
   FastLED.addLeds<NEOPIXEL, PIN_1>(leds, 1*LED_HEIGHT, LED_HEIGHT);
+  #endif
+  #if LED_WIDTH > 2
   FastLED.addLeds<NEOPIXEL, PIN_2>(leds, 2*LED_HEIGHT, LED_HEIGHT);
+  #endif
+  #if LED_WIDTH > 3
   FastLED.addLeds<NEOPIXEL, PIN_3>(leds, 3*LED_HEIGHT, LED_HEIGHT);
+  #endif
+  #if LED_WIDTH > 4
   FastLED.addLeds<NEOPIXEL, PIN_4>(leds, 4*LED_HEIGHT, LED_HEIGHT);
+  #endif
+  #if LED_WIDTH > 5
   FastLED.addLeds<NEOPIXEL, PIN_5>(leds, 5*LED_HEIGHT, LED_HEIGHT);
+  #endif
+  #if LED_WIDTH > 6
   FastLED.addLeds<NEOPIXEL, PIN_6>(leds, 6*LED_HEIGHT, LED_HEIGHT);
+  #endif
+  #if LED_WIDTH > 7
   FastLED.addLeds<NEOPIXEL, PIN_7>(leds, 7*LED_HEIGHT, LED_HEIGHT);
+  #endif
   
   randomSeed(esp_random());
   set_max_power_in_volts_and_milliamps(5, maxCurrent);   // in my current setup the maximum current is 50A
