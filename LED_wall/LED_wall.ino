@@ -13,7 +13,8 @@ FASTLED_USING_NAMESPACE
 CRGB leds[NUM_LEDS];
 int maxCurrent = MAX_CURRENT;         // in milliwatts. can be changed later on with mqtt commands. be careful with this one. it might be best to disable this funvtionality altogether
 
-unsigned long expectedTime = LED_HEIGHT * 24 * 2 / 800;  // this gives us double of what it should take to update one led strip. double bbecause sensing the rest pulse takes a little time
+// this is here so that we don't call Fastled.show() too fast. things froze if we did that
+unsigned long expectedTime = LED_HEIGHT * 24 * 2 / 800;  // this gives us double of what it should take to update one led strip. double because sensing the rest pulse takes a little time
 
 /* // This one let it control MQTT and WiFi
 EspMQTTClient MQTTclient(
@@ -491,10 +492,7 @@ void loop()
   blur.doYourThing();
   
   static unsigned long oldMillis = 0;
-  unsigned long newMillis = millis();
-  unsigned long frameTime = newMillis - oldMillis;
-  static unsigned long previousTime = 0;
-  
+  unsigned long frameTime = millis() - oldMillis;
   if (frameTime < expectedTime) delay(expectedTime - frameTime);
   oldMillis = millis();
   FastLED.show();

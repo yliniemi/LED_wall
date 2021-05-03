@@ -6,6 +6,10 @@
 
 #include <WiFi.h>
 
+#ifdef USING_SERIALOTA
+#include "SerialOTA.h"
+#endif
+
 void reconnectToWifiIfNecessary();
 void setupWifi();
 
