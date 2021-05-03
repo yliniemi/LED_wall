@@ -9,13 +9,9 @@
 FASTLED_USING_NAMESPACE
 
 //The following has to be adapted to your specifications
-#define LED_WIDTH 8
-#define LED_HEIGHT 300
 #define NUM_LEDS LED_WIDTH*LED_HEIGHT
 CRGB leds[NUM_LEDS];
-int maxCurrent = 50000;         // in milliwatts. can be changed later on with mqtt commands. be careful with this one. it might be best to disable this funvtionality altogether
-#define TRY_DISCONNECTING 15     // this is how many times we try WiFi.reconnect() before trying WiFi.disconnect()
-#define TIME_TO_REBOOT 30        // this one has to be bigger that TRY_DISCONNECTING. this is how many times we try to get WiFi back before giving up and rebooting
+int maxCurrent = MAX_CURRENT;         // in milliwatts. can be changed later on with mqtt commands. be careful with this one. it might be best to disable this funvtionality altogether
 
 unsigned long expectedTime = LED_HEIGHT * 24 * 2 / 800;  // this gives us double of what it should take to update one led strip. double bbecause sensing the rest pulse takes a little time
 
@@ -447,14 +443,14 @@ void setup() {
   MQTTclient.enableLastWillMessage(lastWillTopicChar, "What a world, what a world!");  // For some reason this line prevents MQTT connection altogether
   // MQTTsubscriptions();     // we call this elsewhere
   
-  FastLED.addLeds<NEOPIXEL, 4>(leds, 0*LED_HEIGHT, LED_HEIGHT);
-  FastLED.addLeds<NEOPIXEL, 5>(leds, 1*LED_HEIGHT, LED_HEIGHT);
-  FastLED.addLeds<NEOPIXEL, 27>(leds, 2*LED_HEIGHT, LED_HEIGHT);
-  FastLED.addLeds<NEOPIXEL, 18>(leds, 3*LED_HEIGHT, LED_HEIGHT);
-  FastLED.addLeds<NEOPIXEL, 19>(leds, 4*LED_HEIGHT, LED_HEIGHT);
-  FastLED.addLeds<NEOPIXEL, 23>(leds, 5*LED_HEIGHT, LED_HEIGHT);
-  FastLED.addLeds<NEOPIXEL, 32>(leds, 6*LED_HEIGHT, LED_HEIGHT);
-  FastLED.addLeds<NEOPIXEL, 33>(leds, 7*LED_HEIGHT, LED_HEIGHT);
+  FastLED.addLeds<NEOPIXEL, PIN_0>(leds, 0*LED_HEIGHT, LED_HEIGHT);
+  FastLED.addLeds<NEOPIXEL, PIN_1>(leds, 1*LED_HEIGHT, LED_HEIGHT);
+  FastLED.addLeds<NEOPIXEL, PIN_2>(leds, 2*LED_HEIGHT, LED_HEIGHT);
+  FastLED.addLeds<NEOPIXEL, PIN_3>(leds, 3*LED_HEIGHT, LED_HEIGHT);
+  FastLED.addLeds<NEOPIXEL, PIN_4>(leds, 4*LED_HEIGHT, LED_HEIGHT);
+  FastLED.addLeds<NEOPIXEL, PIN_5>(leds, 5*LED_HEIGHT, LED_HEIGHT);
+  FastLED.addLeds<NEOPIXEL, PIN_6>(leds, 6*LED_HEIGHT, LED_HEIGHT);
+  FastLED.addLeds<NEOPIXEL, PIN_7>(leds, 7*LED_HEIGHT, LED_HEIGHT);
   
   randomSeed(esp_random());
   set_max_power_in_volts_and_milliamps(5, maxCurrent);   // in my current setup the maximum current is 50A
