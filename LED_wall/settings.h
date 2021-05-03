@@ -11,3 +11,5 @@
 #define PIN_5 23
 #define PIN_6 32
 #define PIN_7 33
+
+// #define FASTLED_ESP32_I2S     //  uncomment this if you need to use more than 8 pins. the maximum number of led strips that I2S can push is 24
