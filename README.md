@@ -4,5 +4,4 @@
 **please add these lines to .git/info/exclude**  
 
 myCredentials/  
-esp32_mqtt_ds18b20/settings.h  
-esp32_mqtt_dht11/settings.h  
+LED_wall/settings.h  
