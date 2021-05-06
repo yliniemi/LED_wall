@@ -6,6 +6,7 @@
 #define LED_HEIGHT 300
 #define MAX_CURRENT 50000         // maxumum current in milliwatts. this is here so that your powersupply won't overheat or shutdown
 #define USING_SERIALOTA           // uncomment this if you are not using SerialOTA
+#define RANDOM_RESOLUTION 1000
 
 #define PIN_0 4
 #define PIN_1 5
