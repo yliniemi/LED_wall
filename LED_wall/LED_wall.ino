@@ -494,8 +494,8 @@ class FadeToBlack
 };
 
 // MovingDots(speedMin, speedMax, accelerationMax, accelerationInterval, hueMin, hueMax, hueChangeMax, hueInterval, lightnessMin, lightnessMax,  lightnessChangeMax, lightnessInterval, locationMin, locationMax, numDots)
-MovingDots movingDots(0.000, 1.0, 0.01, 1000, 100, 200, 1.3, 300, 130, 200, 1.6, 300, 0, NUM_LEDS / 2, 100);
-MovingDots movingDots1(-1.0, 0.0, 0.01, 1000, 240, 270, 1.3, 300, 230, 250, 1.6, 300, NUM_LEDS / 2, NUM_LEDS, 50);
+MovingDots movingDots(0.000, 1.0, 0.01, 1000, 100, 200, 1.3, 300, 130, 200, 1.6, 300, 0, 5 * LED_HEIGHT, 100);
+MovingDots movingDots1(-1.0, 0.0, 0.01, 1000, 240, 270, 1.3, 300, 230, 250, 1.6, 300, 3 * LED_HEIGHT, NUM_LEDS, 50);
 MovingDots movingDots2(-1.0, 1.0, 0.01, 1000, 100, 20000, 1.3, 300, 130, 200, 1.6, 300, 0, NUM_LEDS, 100);
 MovingDots movingDots3(-1.5, -0.5, 0.01, 1000, 20, 40, 1.3, 300, 20, 20, 1.6, 300, 0, NUM_LEDS, 300);
 
