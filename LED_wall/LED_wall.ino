@@ -20,7 +20,7 @@ CRGB leds[NUM_LEDS];
 int maxCurrent = MAX_CURRENT;         // in milliwatts. can be changed later on with mqtt commands. be careful with this one. it might be best to disable this funvtionality altogether
 
 // this is here so that we don't call Fastled.show() too fast. things froze if we did that
-unsigned long expectedTime = LED_HEIGHT * 24 * 2 / 800;  // this gives us double of what it should take to update one led strip. double because sensing the rest pulse takes a little time
+unsigned long expectedTime = 1 + LED_HEIGHT * 24 * 11 / (800 * 10);     // 1000 us for the reset pulse (takes 50 us. better safe than sorry) 11/10 added 10 % extra just to be on the safe side
 
 /* // This one let it control MQTT and WiFi
 EspMQTTClient MQTTclient(
@@ -494,10 +494,10 @@ class FadeToBlack
 };
 
 // MovingDots(speedMin, speedMax, accelerationMax, accelerationInterval, hueMin, hueMax, hueChangeMax, hueInterval, lightnessMin, lightnessMax,  lightnessChangeMax, lightnessInterval, locationMin, locationMax, numDots)
-MovingDots movingDots(0.000, 1.0, 0.01, 1000, 100, 200, 1.3, 300, 130, 200, 1.6, 300, 0, 5 * LED_HEIGHT, 100);
-MovingDots movingDots1(-1.0, 0.0, 0.01, 1000, 240, 270, 1.3, 300, 230, 250, 1.6, 300, 3 * LED_HEIGHT, NUM_LEDS, 50);
-MovingDots movingDots2(-1.0, 1.0, 0.01, 1000, 100, 20000, 1.3, 300, 130, 200, 1.6, 300, 0, NUM_LEDS, 100);
-MovingDots movingDots3(-1.5, -0.5, 0.01, 1000, 20, 40, 1.3, 300, 20, 20, 1.6, 300, 0, NUM_LEDS, 300);
+MovingDots movingDots(-1.0, 1.0, 0.01, 200, 100, 200, 1.3, 300, 130, 200, 1.6, 300, 0, 5 * LED_HEIGHT, 10);
+MovingDots movingDots1(-1.0, 1.0, 0.01, 200, 240, 270, 1.3, 300, 230, 250, 1.6, 300, 3 * LED_HEIGHT, NUM_LEDS, 10);
+MovingDots movingDots2(-1.0, 1.0, 0.01, 200, 100, 20000, 1.3, 300, 130, 200, 1.6, 300, 0, NUM_LEDS, 10);
+MovingDots movingDots3(-1.5, -0.5, 0.01, 200, 20, 40, 1.3, 300, 20, 20, 1.6, 300, 0, NUM_LEDS, 10);
 
 Blur blur(128, false);
 
