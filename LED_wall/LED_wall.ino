@@ -19,10 +19,6 @@ FASTLED_USING_NAMESPACE
 CRGB leds[NUM_LEDS];
 int maxCurrent = MAX_CURRENT;         // in milliwatts. can be changed later on with mqtt commands. be careful with this one. it might be best to disable this funvtionality altogether
 
-// this is here so that we don't call Fastled.show() too fast. things froze if we did that
-// perhaps I should use microseconds here. I could shave off a couple of milliseconds
-unsigned long expectedTime = LED_HEIGHT * 24 * 11 / (800 * 10) + 2;     // 1 ms for the reset pulse and (takes 50 us. better safe than sorry) 1 ms rounding 11/10 added 10 % extra just to be on the safe side
-
 /* // This one let it control MQTT and WiFi
 EspMQTTClient MQTTclient(
   //WIFI_SSID,
@@ -495,10 +491,10 @@ class FadeToBlack
 };
 
 // MovingDots(speedMin, speedMax, accelerationMax, accelerationInterval, hueMin, hueMax, hueChangeMax, hueInterval, lightnessMin, lightnessMax,  lightnessChangeMax, lightnessInterval, locationMin, locationMax, numDots)
-MovingDots movingDots(-1.0, 1.0, 0.01, 200, 100, 200, 1.3, 300, 130, 200, 1.6, 300, 0, 5 * LED_HEIGHT, 10);
-MovingDots movingDots1(-1.0, 1.0, 0.01, 200, 240, 270, 1.3, 300, 230, 250, 1.6, 300, 3 * LED_HEIGHT, NUM_LEDS, 10);
-MovingDots movingDots2(-1.0, 1.0, 0.01, 200, 100, 20000, 1.3, 300, 130, 200, 1.6, 300, 0, NUM_LEDS, 10);
-MovingDots movingDots3(-1.5, -0.5, 0.01, 200, 20, 40, 1.3, 300, 20, 20, 1.6, 300, 0, NUM_LEDS, 10);
+MovingDots movingDots(-0.3, 0.3, 0.005, 200, 100, 200, 1.3, 300, 130, 200, 1.6, 300, 0, 5 * LED_HEIGHT, 10);
+MovingDots movingDots1(-0.3, 0.3, 0.005, 200, 240, 270, 1.3, 300, 230, 250, 1.6, 300, 3 * LED_HEIGHT, NUM_LEDS, 10);
+MovingDots movingDots2(-0.3, 0.3, 0.005, 200, 100, 20000, 1.3, 300, 130, 200, 1.6, 300, 0, NUM_LEDS, 10);
+MovingDots movingDots3(-1.0, -0.5, 0.005, 200, 20, 40, 1.3, 300, 20, 20, 1.6, 300, 0, NUM_LEDS, 10);
 
 Blur blur(128, false);
 
@@ -631,7 +627,6 @@ void setup() {
   
   randomSeed(esp_random());
   set_max_power_in_volts_and_milliamps(5, maxCurrent);   // in my current setup the maximum current is 50A
-  if (expectedTime < 11) expectedTime = 11;
 }
 
 void loop()
@@ -655,9 +650,14 @@ void loop()
   movingDots3.doYourThing();
   blur.doYourThing();
   
-  static unsigned long oldMillis = 0;
-  unsigned long frameTime = millis() - oldMillis;
-  if (frameTime < expectedTime) delay(expectedTime - frameTime);
-  oldMillis = millis();
+  // this is here so that we don't call Fastled.show() too fast. things froze if we did that
+  // perhaps I should use microseconds here. I could shave off a couple of milliseconds
+  // unsigned long expectedTime = LED_HEIGHT * 24 * 11 / (800 * 10) + 2;     // 1 ms for the reset pulse and (takes 50 us. better safe than sorry) 1 ms rounding 11/10 added 10 % extra just to be on the safe side
+  static unsigned long expectedTime = LED_HEIGHT * 24 * 11 / 8 + 500;     // 500 us for the reset pulse and (takes 50 us. better safe than sorry) also added 10 % extra just to be on the safe side
+  
+  static unsigned long oldMicros = 0;
+  unsigned long frameTime = micros() - oldMicros;
+  if (frameTime < expectedTime) delayMicroseconds(expectedTime - frameTime);
+  oldMicros = micros();
   FastLED.show();
 }
